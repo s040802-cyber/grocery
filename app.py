@@ -200,30 +200,23 @@ with tab3:
     st.header("✨ AI Parser Shopping List")
     st.write("Paste your raw, messy grocery list or recipe ingredients. The AI will parse it and calculate the cheapest supermarket!")
     
+    # Session state for two-step workflow
+    if "parsed_items" not in st.session_state:
+        st.session_state["parsed_items"] = []
+    if "calc_results" not in st.session_state:
+        st.session_state["calc_results"] = None
+        
     raw_list = st.text_area("Paste your list here:")
     
-    st.subheader("Compare Supermarkets")
-    available_sms = {sm_id: conf.name for sm_id, conf in data_manager.supermarkets.items()}
-    manual_sms_names = st.multiselect(
-        "Select supermarkets to compare", 
-        options=list(available_sms.values()), 
-        default=list(available_sms.values()),
-        key="manual_sms_select"
-    )
-    
-    manual_sms_ids = [sm_id for sm_id, name in available_sms.items() if name in manual_sms_names]
-    
-    if st.button("Parse & Calculate", type="primary", key="calc_prices"):
+    if st.button("Parse List", type="secondary", key="parse_list_btn"):
         if not raw_list.strip():
             st.warning("Please paste a list first.")
-        elif not manual_sms_ids:
-            st.warning("Please select at least one supermarket.")
         else:
             api_key = ""
             if "OpenAI" in ai_model:
-                api_key = st.secrets["OPENAI_API_KEY"]
+                api_key = st.secrets.get("OPENAI_API_KEY", "")
             else:
-                api_key = st.secrets["GEMINI_API_KEY"]
+                api_key = st.secrets.get("GEMINI_API_KEY", "")
                 
             if not api_key:
                 st.error(f"Missing API Key for {ai_model} in `.streamlit/secrets.toml`.")
@@ -236,40 +229,120 @@ with tab3:
                         ai_service = GeminiService(api_key)
                         
                     with st.spinner(f"Parsing list using {ai_model}..."):
-                        parsed_list = ai_service.parse_free_text_list(raw_list, data_manager)
+                        st.session_state["parsed_items"] = ai_service.parse_free_text_list(raw_list, data_manager)
+                        st.session_state["calc_results"] = None # Reset calculations
                 except Exception as e:
                     st.error(f"AI Parsing failed: {e}")
-                    parsed_list = []
+                    st.session_state["parsed_items"] = []
+
+    # Stage 1: Edit Parsed Items
+    if st.session_state["parsed_items"]:
+        st.subheader("1. Review and Edit Ingredients")
+        st.caption("Fix any mistakes or adjust quantities before calculating the route.")
+        
+        # Format for data_editor
+        edit_data = []
+        for i in st.session_state["parsed_items"]:
+            edit_data.append({"Ingredient ID": i.get("id", ""), "Amount": i.get("amount", 1)})
+            
+        import pandas as pd
+        edited_df = st.data_editor(
+            pd.DataFrame(edit_data),
+            num_rows="dynamic",
+            use_container_width=True
+        )
+        
+        st.subheader("2. Compare Supermarkets")
+        available_sms = {sm_id: conf.name for sm_id, conf in data_manager.supermarkets.items()}
+        manual_sms_names = st.multiselect(
+            "Select supermarkets to compare", 
+            options=list(available_sms.values()), 
+            default=list(available_sms.values()),
+            key="manual_sms_select"
+        )
+        manual_sms_ids = [sm_id for sm_id, name in available_sms.items() if name in manual_sms_names]
+        
+        if st.button("Calculate Route", type="primary", key="calc_prices"):
+            if not manual_sms_ids:
+                st.warning("Please select at least one supermarket.")
+            elif edited_df.empty:
+                st.warning("Your ingredient list is empty.")
+            else:
+                items = edited_df["Ingredient ID"].tolist()
+                amounts = dict(zip(edited_df["Ingredient ID"], edited_df["Amount"]))
+                
+                with st.spinner("Calculating prices across supermarkets..."):
+                    results = shopping_processor.process_shopping_list(items, amounts, manual_sms_ids)
+                    st.session_state["calc_results"] = results
+                    st.rerun()
+
+    # Stage 2: View and Override Results
+    if st.session_state["calc_results"]:
+        results = st.session_state["calc_results"]
+        if not results or not results.get("items"):
+            st.error("Could not find prices for these items.")
+        else:
+            st.subheader("3. Final Shopping Route")
+            
+            # Recalculate total cost based on active selections
+            total_cost = sum(item["total_price"] for item in results["items"])
+            st.success(f"🏆 Optimal Shopping Route: **€{total_cost:.2f}**")
+            
+            # Helper function for dropdown changes
+            def override_item(item_idx, selected_alt_str):
+                # Find the alternative in the list
+                item = st.session_state["calc_results"]["items"][item_idx]
+                for alt in item["alternatives"]:
+                    alt_str = f"{alt['name']} ({alt['unit_size']}) - €{alt['price']} [{data_manager.get_supermarket(alt['supermarket']).name}]"
+                    if alt_str == selected_alt_str:
+                        # Override the optimal choice with this alternative
+                        item["name"] = alt["name"]
+                        item["price"] = alt["price"]
+                        item["supermarket"] = alt["supermarket"]
+                        item["is_bonus"] = alt["is_bonus"]
+                        item["total_price"] = alt["price"] * item["packages_needed"]
+                        break
+            
+            # Display items with dropdowns for alternatives
+            items_by_sm = {}
+            for idx, item in enumerate(results.get("items", [])):
+                sm = item["supermarket"]
+                if sm not in items_by_sm:
+                    items_by_sm[sm] = []
+                items_by_sm[sm].append((idx, item))
+                
+            for sm_id, sm_items in items_by_sm.items():
+                sm_name = data_manager.get_supermarket(sm_id).name if data_manager.get_supermarket(sm_id) else sm_id
+                sm_total = sum(i["total_price"] for _, i in sm_items)
+                
+                with st.expander(f"🛒 {sm_name}: €{sm_total:.2f} ({len(sm_items)} items)", expanded=True):
+                    for idx, item in sm_items:
+                        bonus_str = "🎁 " if item.get("is_bonus") else ""
                         
-                if parsed_list:
-                    items = [i.get("id") for i in parsed_list if "id" in i]
-                    amounts = {i.get("id"): i.get("amount", 1) for i in parsed_list if "id" in i}
-                    
-                    st.success(f"Parsed {len(items)} items: {', '.join(items)}")
-                    
-                    with st.spinner("Calculating prices across supermarkets..."):
-                        results = shopping_processor.process_shopping_list(items, amounts, manual_sms_ids)
-                        
-                    if not results or not results.get("items"):
-                        st.error("Could not find prices for these items.")
-                    else:
-                        total_cost = results.get('total_cost', 0)
-                        st.success(f"🏆 Optimal Shopping Route: **€{total_cost:.2f}**")
-                        
-                        items_by_sm = {}
-                        for item in results.get("items", []):
-                            sm = item["supermarket"]
-                            if sm not in items_by_sm:
-                                items_by_sm[sm] = []
-                            items_by_sm[sm].append(item)
+                        # Build options string
+                        options = []
+                        current_val = None
+                        for alt in item["alternatives"]:
+                            alt_sm_name = data_manager.get_supermarket(alt["supermarket"]).name
+                            alt_str = f"{alt['name']} ({alt['unit_size']}) - €{alt['price']} [{alt_sm_name}]"
+                            options.append(alt_str)
                             
-                        for sm_id, sm_items in items_by_sm.items():
-                            sm_name = data_manager.get_supermarket(sm_id).name if data_manager.get_supermarket(sm_id) else sm_id
-                            sm_total = sum(i["total_price"] for i in sm_items)
-                            with st.expander(f"🛒 {sm_name}: €{sm_total:.2f} ({len(sm_items)} items)", expanded=True):
-                                for item in sm_items:
-                                    bonus_str = "🎁 BONUS " if item.get("is_bonus") else ""
-                                    st.markdown(f"- **{item['name']}** (x{item['packages_needed']}): {bonus_str}€{item['total_price']:.2f}")
-                                    
-                        if results.get("missing_items"):
-                            st.warning(f"Could not find these items in any selected supermarket: {', '.join(results['missing_items'])}")
+                            if alt["name"] == item["name"] and alt["supermarket"] == item["supermarket"] and alt["price"] == item["price"]:
+                                current_val = alt_str
+                                
+                        if not current_val and options:
+                            current_val = options[0]
+                            
+                        selected = st.selectbox(
+                            f"{bonus_str}{item['amount']}x {item['ingredient_id']} (Needs {item['packages_needed']} packages)", 
+                            options=options, 
+                            index=options.index(current_val) if current_val in options else 0,
+                            key=f"alt_{idx}"
+                        )
+                        
+                        if selected != current_val:
+                            override_item(idx, selected)
+                            st.rerun()
+                            
+            if results.get("missing_items"):
+                st.warning(f"Could not find these items in any selected supermarket: {', '.join(results['missing_items'])}")
