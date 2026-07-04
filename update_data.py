@@ -3,7 +3,12 @@ from PriceEngine import PriceEngine
 
 print("Starting automatic data update...")
 dm = DataManager()
-# Instantiating PriceEngine automatically triggers the download of the latest supermarkets.json 
-# and the 7-day old version, and runs the preprocessing step to format package sizes.
 engine = PriceEngine(dm)
+engine._download_datasets()
+try:
+    from unit_price import DataPreprocessor
+    preprocessor = DataPreprocessor(engine.data_dir)
+    preprocessor.preprocess()
+except Exception as e:
+    print(f"Failed to preprocess: {e}")
 print("Data update complete! Files are ready in the 'data' folder.")

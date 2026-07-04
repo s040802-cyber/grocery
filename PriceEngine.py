@@ -118,21 +118,25 @@ class PriceEngine:
     def _download_datasets(self):
         print("Downloading latest supermarket dataset...")
         try:
-            response = requests.get(self.DATASET_URL, timeout=30)
+            headers = {}
+            if "GITHUB_TOKEN" in os.environ:
+                headers["Authorization"] = f"token {os.environ['GITHUB_TOKEN']}"
+                
+            response = requests.get(self.DATASET_URL, headers=headers, timeout=30)
             response.raise_for_status()
             with open(self.dataset_path, "w", encoding="utf-8") as f:
                 f.write(response.text)
                 
             target_date = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ")
             commits_url = f"{self.REPO_API_URL}?path={self.DATA_PATH}&until={target_date}&per_page=1"
-            c_resp = requests.get(commits_url, timeout=10)
+            c_resp = requests.get(commits_url, headers=headers, timeout=10)
             c_resp.raise_for_status()
             commits = c_resp.json()
             
             if commits:
                 commit_sha = commits[0]["sha"]
                 old_url = f"https://raw.githubusercontent.com/supermarkt/checkjebon/{commit_sha}/{self.DATA_PATH}"
-                o_resp = requests.get(old_url, timeout=30)
+                o_resp = requests.get(old_url, headers=headers, timeout=30)
                 o_resp.raise_for_status()
                 with open(self.old_dataset_path, "w", encoding="utf-8") as f:
                     f.write(o_resp.text)
