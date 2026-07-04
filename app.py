@@ -41,6 +41,9 @@ def check_password():
 if not check_password():
     st.stop()
 
+# FORCE CLEAR CACHE TO FIX DATA LOADING BUG
+st.cache_resource.clear()
+
 # -- Caching Backend --
 @st.cache_resource(show_spinner="Initializing Supermarket Data...")
 def get_backend():
