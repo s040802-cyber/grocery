@@ -250,20 +250,26 @@ with tab3:
                     with st.spinner("Calculating prices across supermarkets..."):
                         results = shopping_processor.process_shopping_list(items, amounts, manual_sms_ids)
                         
-                    if not results:
+                    if not results or not results.get("items"):
                         st.error("Could not find prices for these items.")
                     else:
-                        sorted_results = sorted(results.items(), key=lambda x: x[1]['total_price'])
-                        best_sm_id, best_data = sorted_results[0]
-                        best_name = data_manager.get_supermarket(best_sm_id).name
-                        st.success(f"🏆 Cheapest Option: **{best_name}** at **€{best_data['total_price']:.2f}**")
+                        total_cost = results.get('total_cost', 0)
+                        st.success(f"🏆 Optimal Shopping Route: **€{total_cost:.2f}**")
                         
-                        for sm_id, data in sorted_results:
-                            sm_name = data_manager.get_supermarket(sm_id).name
-                            with st.expander(f"{sm_name}: €{data['total_price']:.2f}"):
-                                for product in data['items']:
-                                    if product:
-                                        bonus_str = "🎁 BONUS " if product.is_bonus else ""
-                                        st.markdown(f"- **{product.name}** ({product.unit_size}): {bonus_str}€{product.price:.2f}")
-                                    else:
-                                        st.markdown("- *Item not found*")
+                        items_by_sm = {}
+                        for item in results.get("items", []):
+                            sm = item["supermarket"]
+                            if sm not in items_by_sm:
+                                items_by_sm[sm] = []
+                            items_by_sm[sm].append(item)
+                            
+                        for sm_id, sm_items in items_by_sm.items():
+                            sm_name = data_manager.get_supermarket(sm_id).name if data_manager.get_supermarket(sm_id) else sm_id
+                            sm_total = sum(i["total_price"] for i in sm_items)
+                            with st.expander(f"🛒 {sm_name}: €{sm_total:.2f} ({len(sm_items)} items)", expanded=True):
+                                for item in sm_items:
+                                    bonus_str = "🎁 BONUS " if item.get("is_bonus") else ""
+                                    st.markdown(f"- **{item['name']}** (x{item['packages_needed']}): {bonus_str}€{item['total_price']:.2f}")
+                                    
+                        if results.get("missing_items"):
+                            st.warning(f"Could not find these items in any selected supermarket: {', '.join(results['missing_items'])}")
