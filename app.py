@@ -243,13 +243,20 @@ with tab3:
         # Format for data_editor
         edit_data = []
         for i in st.session_state["parsed_items"]:
-            edit_data.append({"Ingredient ID": i.get("id", ""), "Amount": i.get("amount", 1)})
+            ing_id = i.get("id", "")
+            unit_str = "piece"
+            if not ing_id.startswith("DYNAMIC:"):
+                ing_obj = data_manager.get_ingredient(ing_id)
+                if ing_obj:
+                    unit_str = ing_obj.expected_unit.value
+            edit_data.append({"Ingredient ID": ing_id, "Amount": float(i.get("amount", 1)), "Unit (e.g. g, ml, piece)": unit_str})
             
         import pandas as pd
         edited_df = st.data_editor(
             pd.DataFrame(edit_data),
             num_rows="dynamic",
-            use_container_width=True
+            use_container_width=True,
+            disabled=("Unit (e.g. g, ml, piece)",) # Don't let them edit the unit directly, it's just for display
         )
         
         st.subheader("2. Compare Supermarkets")
