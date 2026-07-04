@@ -128,7 +128,7 @@ class GeminiService(AIService):
             import google.generativeai as genai
             genai.configure(api_key=api_key)
             self.genai = genai
-            self.fast_model = "gemini-3.5-flash"
+            self.fast_model = "gemini-3.1-flash-lite" # Use flash-lite to save costs
         except ImportError:
             raise ImportError("Please run 'pip install google-generativeai' to use GeminiService")
 
