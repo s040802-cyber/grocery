@@ -242,8 +242,8 @@ with tab3:
                     parsed_list = []
                         
                 if parsed_list:
-                    items = [i["item"] for i in parsed_list]
-                    amounts = {i["item"]: i["amount"] for i in parsed_list}
+                    items = [i.get("id") for i in parsed_list if "id" in i]
+                    amounts = {i.get("id"): i.get("amount", 1) for i in parsed_list if "id" in i}
                     
                     st.success(f"Parsed {len(items)} items: {', '.join(items)}")
                     
