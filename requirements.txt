@@ -1,0 +1,8 @@
+streamlit
+pandas
+requests
+reportlab
+google-generativeai
+openai
+thefuzz
+python-Levenshtein
