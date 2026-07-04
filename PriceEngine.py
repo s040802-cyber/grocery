@@ -68,6 +68,7 @@ class PriceEngine:
         self.old_dataset = []
         self.supermarket_data = {}
         self.bonus_items_keys: Set[str] = set()
+        self.last_error = None
         
         self._initialize_dataset()
         
@@ -106,7 +107,8 @@ class PriceEngine:
                 with open(self.old_dataset_path, "r", encoding="utf-8") as f:
                     self.old_dataset = json.load(f)
         except Exception as e:
-            print(f"Failed to load dataset from disk: {e}")
+            self.last_error = f"Failed to load dataset from disk: {e}"
+            print(self.last_error)
             self.dataset = []
             self.old_dataset = []
             
@@ -118,7 +120,7 @@ class PriceEngine:
     def _download_datasets(self):
         print("Downloading latest supermarket dataset...")
         try:
-            headers = {}
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
             if "GITHUB_TOKEN" in os.environ:
                 headers["Authorization"] = f"token {os.environ['GITHUB_TOKEN']}"
                 
@@ -144,7 +146,8 @@ class PriceEngine:
                 with open(self.old_dataset_path, "w", encoding="utf-8") as f:
                     f.write("[]")
         except Exception as e:
-            print(f"Dataset download failed: {e}")
+            self.last_error = f"Dataset download failed: {e}"
+            print(self.last_error)
 
     def _compute_bonus_items(self):
         self.bonus_items_keys.clear()

@@ -72,7 +72,7 @@ with tab1:
 
     # Supermarkets
     st.subheader("Preferred Supermarkets")
-    st.caption(f"DEBUG: Dataset length: {len(price_engine.dataset)} | Supermarket data keys: {list(price_engine.supermarket_data.keys())} | Bonus items: {len(price_engine.bonus_items_keys)}")
+    st.caption(f"DEBUG: Dataset length: {len(price_engine.dataset)} | Bonus items: {len(price_engine.bonus_items_keys)} | Error: {price_engine.last_error}")
     
     available_sms = {sm_id: conf.name for sm_id, conf in data_manager.supermarkets.items() if sm_id != "aldi"}
     
