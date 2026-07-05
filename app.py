@@ -231,20 +231,20 @@ with tab3:
                     with st.spinner(f"Parsing list using {ai_model}..."):
                         parsed_list = ai_service.parse_free_text_list(raw_list, data_manager)
                         
-                        # Register DYNAMIC items into DataManager
+                        # Sanitize DYNAMIC items immediately so the UI looks beautiful
                         if parsed_list:
                             from data_dictionary import Ingredient, IngredientTranslation, Category, Unit
-                            for i in parsed_list:
-                                ing_id = i.get("id")
-                                if ing_id and ing_id.startswith("DYNAMIC:"):
-                                    dutch_name = ing_id.split(":", 1)[1].strip()
-                                    new_id = f"dynamic_{dutch_name.replace(' ', '_').lower()}"
-                                    i["id"] = new_id # Replace the ID in the parsed list
+                            for item in parsed_list:
+                                item_id = item.get("id", "")
+                                if item_id and item_id.startswith("DYNAMIC:"):
+                                    dutch_name = item_id.split(":", 1)[1].strip()
+                                    dutch_name = dutch_name.replace("halvevolle", "halfvolle")
+                                    clean_id = f"dynamic_{dutch_name.replace(' ', '_').lower()}"
                                     
-                                    if new_id not in data_manager.ingredients:
+                                    if clean_id not in data_manager.ingredients:
                                         dyn_ing = Ingredient(
-                                            id=new_id,
-                                            translations=IngredientTranslation(dutch_name, dutch_name, dutch_name, dutch_name),
+                                            id=clean_id,
+                                            translations=IngredientTranslation(dutch_name.title(), dutch_name.title(), dutch_name.title(), dutch_name.title()),
                                             category=Category.PANTRY,
                                             expected_unit=Unit.PIECE,
                                             default_variant=dutch_name,
@@ -252,8 +252,10 @@ with tab3:
                                             available_variants=[dutch_name],
                                             tags=[]
                                         )
-                                        data_manager.ingredients[new_id] = dyn_ing
-                        
+                                        data_manager.ingredients[clean_id] = dyn_ing
+                                        
+                                    item["id"] = clean_id
+                                    
                         st.session_state["parsed_items"] = parsed_list
                         st.session_state["calc_results"] = None # Reset calculations
                 except Exception as e:
@@ -444,8 +446,13 @@ with tab3:
                         if not current_val and options:
                             current_val = options[0]
                             
+                        ing_obj = data_manager.get_ingredient(item['ingredient_id'])
+                        display_name = ing_obj.translations.nl if ing_obj else item['ingredient_id']
+                        if item['ingredient_id'].startswith("dynamic_"):
+                            display_name = display_name.title()
+                            
                         selected = st.selectbox(
-                            f"{bonus_str}{item['amount']}x {item['ingredient_id']} (Needs {item['packages_needed']} packages)", 
+                            f"{bonus_str}{item['amount']}x {display_name} (Needs {item['packages_needed']} packages)", 
                             options=options, 
                             index=options.index(current_val) if current_val in options else 0,
                             key=f"alt_{idx}"
