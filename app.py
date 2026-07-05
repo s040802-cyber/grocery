@@ -272,17 +272,30 @@ with tab3:
         for i in st.session_state["parsed_items"]:
             ing_id = i.get("id", "")
             unit_str = "piece"
-            if not ing_id.startswith("DYNAMIC:"):
-                ing_obj = data_manager.get_ingredient(ing_id)
-                if ing_obj:
-                    unit_str = ing_obj.expected_unit.value
-            edit_data.append({"Ingredient ID": ing_id, "Amount": float(i.get("amount", 1)), "Unit (e.g. g, ml, piece)": unit_str})
+            display_name = ing_id
+            
+            ing_obj = data_manager.get_ingredient(ing_id)
+            if ing_obj:
+                unit_str = ing_obj.expected_unit.value
+                display_name = ing_obj.translations.nl
+                
+            edit_data.append({
+                "Ingredient": display_name, 
+                "Amount": float(i.get("amount", 1)), 
+                "Unit (e.g. g, ml, piece)": unit_str,
+                "_internal_id": ing_id
+            })
             
         import pandas as pd
         edited_df = st.data_editor(
             pd.DataFrame(edit_data),
             num_rows="dynamic",
             use_container_width=True,
+            column_config={
+                "_internal_id": None, # Hide internal ID column
+                "Ingredient": st.column_config.TextColumn("Ingredient", max_chars=50),
+                "Amount": st.column_config.NumberColumn("Amount Needed", min_value=0.1, step=1.0, format="%f")
+            },
             disabled=("Unit (e.g. g, ml, piece)",) # Don't let them edit the unit directly, it's just for display
         )
         
@@ -294,35 +307,42 @@ with tab3:
             default=list(available_sms.values()),
             key="manual_sms_select"
         )
-        manual_sms_ids = [sm_id for sm_id, name in available_sms.items() if name in manual_sms_names]
+        manual_sms_ids = [sm_id for sm_id, sm_name in available_sms.items() if sm_name in manual_sms_names]
         
-        if st.button("Calculate Route", type="primary", key="calc_prices"):
+        if st.button("Calculate Route", type="primary"):
             if not manual_sms_ids:
-                st.warning("Please select at least one supermarket.")
+                st.warning("Select at least one supermarket.")
             elif edited_df.empty:
                 st.warning("Your ingredient list is empty.")
             else:
-                raw_items = edited_df["Ingredient ID"].tolist()
-                raw_amounts = dict(zip(edited_df["Ingredient ID"], edited_df["Amount"]))
-                
                 items = []
                 amounts = {}
                 from data_dictionary import Ingredient, IngredientTranslation, Category, Unit
                 
-                for item_id in raw_items:
-                    clean_id = item_id
-                    if item_id.startswith("DYNAMIC:"):
-                        dutch_name = item_id.split(":", 1)[1].strip()
-                        
-                        # Auto-correct common spelling mistakes that break the strict offline search
+                for idx, row in edited_df.iterrows():
+                    user_name = str(row.get("Ingredient", "")).strip()
+                    internal_id = str(row.get("_internal_id", ""))
+                    amount = float(row.get("Amount", 1.0))
+                    
+                    if not user_name: continue
+                    
+                    clean_id = internal_id
+                    ing_obj = data_manager.get_ingredient(internal_id)
+                    
+                    # If the user typed a new name, or it's a completely new row (internal_id is empty)
+                    if not ing_obj or ing_obj.translations.nl != user_name:
+                        # User typed a new name!
+                        dutch_name = user_name
+                        if user_name.startswith("DYNAMIC:"):
+                            dutch_name = user_name.split(":", 1)[1].strip()
+                            
                         dutch_name = dutch_name.replace("halvevolle", "halfvolle")
-                        
                         clean_id = f"dynamic_{dutch_name.replace(' ', '_').lower()}"
                         
                         if clean_id not in data_manager.ingredients:
                             dyn_ing = Ingredient(
                                 id=clean_id,
-                                translations=IngredientTranslation(dutch_name, dutch_name, dutch_name, dutch_name),
+                                translations=IngredientTranslation(dutch_name.title(), dutch_name.title(), dutch_name.title(), dutch_name.title()),
                                 category=Category.PANTRY,
                                 expected_unit=Unit.PIECE,
                                 default_variant=dutch_name,
@@ -331,9 +351,9 @@ with tab3:
                                 tags=[]
                             )
                             data_manager.ingredients[clean_id] = dyn_ing
-                    
+                            
                     items.append(clean_id)
-                    amounts[clean_id] = raw_amounts[item_id]
+                    amounts[clean_id] = amount
                 
                 with st.spinner("Calculating prices across supermarkets..."):
                     results = shopping_processor.process_shopping_list(items, amounts, manual_sms_ids)
