@@ -229,7 +229,32 @@ with tab3:
                         ai_service = GeminiService(api_key)
                         
                     with st.spinner(f"Parsing list using {ai_model}..."):
-                        st.session_state["parsed_items"] = ai_service.parse_free_text_list(raw_list, data_manager)
+                        parsed_list = ai_service.parse_free_text_list(raw_list, data_manager)
+                        
+                        # Register DYNAMIC items into DataManager
+                        if parsed_list:
+                            from data_dictionary import Ingredient, IngredientTranslation, Category, Unit
+                            for i in parsed_list:
+                                ing_id = i.get("id")
+                                if ing_id and ing_id.startswith("DYNAMIC:"):
+                                    dutch_name = ing_id.split(":", 1)[1].strip()
+                                    new_id = f"dynamic_{dutch_name.replace(' ', '_').lower()}"
+                                    i["id"] = new_id # Replace the ID in the parsed list
+                                    
+                                    if new_id not in data_manager.ingredients:
+                                        dyn_ing = Ingredient(
+                                            id=new_id,
+                                            translations=IngredientTranslation(dutch_name, dutch_name, dutch_name, dutch_name),
+                                            category=Category.PANTRY,
+                                            expected_unit=Unit.PIECE,
+                                            default_variant=dutch_name,
+                                            default_brand_preference="cheapest",
+                                            available_variants=[dutch_name],
+                                            tags=[]
+                                        )
+                                        data_manager.ingredients[new_id] = dyn_ing
+                        
+                        st.session_state["parsed_items"] = parsed_list
                         st.session_state["calc_results"] = None # Reset calculations
                 except Exception as e:
                     st.error(f"AI Parsing failed: {e}")
