@@ -41,8 +41,7 @@ def check_password():
 if not check_password():
     st.stop()
 
-# FORCE CLEAR CACHE TO FIX DATA LOADING BUG
-st.cache_resource.clear()
+
 
 # -- Caching Backend --
 @st.cache_resource(show_spinner="Initializing Supermarket Data...")
@@ -68,7 +67,7 @@ with tab1:
         portions = st.number_input("Portions", min_value=1, value=2, step=1)
     with col2:
         cuisine = st.text_input("Cuisine (e.g. Italian, Thai)", value="Italian")
-        ai_model = st.selectbox("AI Model", ["Gemini (3.1 Flash-Lite)", "OpenAI (GPT-4o)"])
+        ai_model = st.selectbox("AI Model", ["Gemini (3.5 Flash)", "OpenAI (GPT-4o)"])
 
     # Supermarkets
     st.subheader("Preferred Supermarkets")
