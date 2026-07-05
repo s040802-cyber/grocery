@@ -68,7 +68,7 @@ with tab1:
         portions = st.number_input("Portions", min_value=1, value=2, step=1)
     with col2:
         cuisine = st.text_input("Cuisine (e.g. Italian, Thai)", value="Italian")
-        ai_model = st.selectbox("AI Model", ["OpenAI (GPT-4o)", "Gemini (3.5 Flash)"])
+        ai_model = st.selectbox("AI Model", ["Gemini (3.1 Flash-Lite)", "OpenAI (GPT-4o)"])
 
     # Supermarkets
     st.subheader("Preferred Supermarkets")
@@ -300,8 +300,34 @@ with tab3:
             elif edited_df.empty:
                 st.warning("Your ingredient list is empty.")
             else:
-                items = edited_df["Ingredient ID"].tolist()
-                amounts = dict(zip(edited_df["Ingredient ID"], edited_df["Amount"]))
+                raw_items = edited_df["Ingredient ID"].tolist()
+                raw_amounts = dict(zip(edited_df["Ingredient ID"], edited_df["Amount"]))
+                
+                items = []
+                amounts = {}
+                from data_dictionary import Ingredient, IngredientTranslation, Category, Unit
+                
+                for item_id in raw_items:
+                    clean_id = item_id
+                    if item_id.startswith("DYNAMIC:"):
+                        dutch_name = item_id.split(":", 1)[1].strip()
+                        clean_id = f"dynamic_{dutch_name.replace(' ', '_').lower()}"
+                        
+                        if clean_id not in data_manager.ingredients:
+                            dyn_ing = Ingredient(
+                                id=clean_id,
+                                translations=IngredientTranslation(dutch_name, dutch_name, dutch_name, dutch_name),
+                                category=Category.PANTRY,
+                                expected_unit=Unit.PIECE,
+                                default_variant=dutch_name,
+                                default_brand_preference="cheapest",
+                                available_variants=[dutch_name],
+                                tags=[]
+                            )
+                            data_manager.ingredients[clean_id] = dyn_ing
+                    
+                    items.append(clean_id)
+                    amounts[clean_id] = raw_amounts[item_id]
                 
                 with st.spinner("Calculating prices across supermarkets..."):
                     results = shopping_processor.process_shopping_list(items, amounts, manual_sms_ids)
@@ -320,20 +346,64 @@ with tab3:
             total_cost = sum(item["total_price"] for item in results["items"])
             st.success(f"🏆 Optimal Shopping Route: **€{total_cost:.2f}**")
             
+            auto_snap = st.checkbox("Auto-snap all other items to the same supermarket when I change a brand", value=True)
+            
             # Helper function for dropdown changes
             def override_item(item_idx, selected_alt_str):
                 # Find the alternative in the list
                 item = st.session_state["calc_results"]["items"][item_idx]
+                target_sm = None
+                
                 for alt in item["alternatives"]:
                     alt_str = f"{alt['name']} ({alt['unit_size']}) - €{alt['price']} [{data_manager.get_supermarket(alt['supermarket']).name}]"
                     if alt_str == selected_alt_str:
+                        target_sm = alt["supermarket"]
                         # Override the optimal choice with this alternative
                         item["name"] = alt["name"]
                         item["price"] = alt["price"]
                         item["supermarket"] = alt["supermarket"]
                         item["is_bonus"] = alt["is_bonus"]
-                        item["total_price"] = alt["price"] * item["packages_needed"]
+                        
+                        # Recalculate packages needed for the new alternative size
+                        import math
+                        package_size = alt.get("parsed_amount", 1.0)
+                        if item.get("expected_unit") in ["g", "ml"] and alt.get("natural_unit") in ["KG", "L"]:
+                            package_size = package_size * 1000.0
+                            
+                        qty = float(item.get("amount", 1.0))
+                        new_packages = math.ceil(qty / package_size) if package_size > 0 else 1
+                        
+                        item["packages_needed"] = new_packages
+                        item["total_price"] = alt["price"] * new_packages
                         break
+                        
+                if auto_snap and target_sm:
+                    # Snap all OTHER items to this target_sm
+                    import math
+                    for other_idx, other_item in enumerate(st.session_state["calc_results"]["items"]):
+                        if other_idx == item_idx:
+                            continue
+                            
+                        best_alt = None
+                        for other_alt in other_item["alternatives"]:
+                            if other_alt["supermarket"] == target_sm:
+                                if best_alt is None or other_alt["unit_price"] < best_alt["unit_price"]:
+                                    best_alt = other_alt
+                                    
+                        if best_alt:
+                            other_item["name"] = best_alt["name"]
+                            other_item["price"] = best_alt["price"]
+                            other_item["supermarket"] = best_alt["supermarket"]
+                            other_item["is_bonus"] = best_alt["is_bonus"]
+                            
+                            p_size = best_alt.get("parsed_amount", 1.0)
+                            if other_item.get("expected_unit") in ["g", "ml"] and best_alt.get("natural_unit") in ["KG", "L"]:
+                                p_size = p_size * 1000.0
+                                
+                            qty = float(other_item.get("amount", 1.0))
+                            n_pkg = math.ceil(qty / p_size) if p_size > 0 else 1
+                            other_item["packages_needed"] = n_pkg
+                            other_item["total_price"] = best_alt["price"] * n_pkg
             
             # Display items with dropdowns for alternatives
             items_by_sm = {}
