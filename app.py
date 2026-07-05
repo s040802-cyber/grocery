@@ -311,6 +311,10 @@ with tab3:
                     clean_id = item_id
                     if item_id.startswith("DYNAMIC:"):
                         dutch_name = item_id.split(":", 1)[1].strip()
+                        
+                        # Auto-correct common spelling mistakes that break the strict offline search
+                        dutch_name = dutch_name.replace("halvevolle", "halfvolle")
+                        
                         clean_id = f"dynamic_{dutch_name.replace(' ', '_').lower()}"
                         
                         if clean_id not in data_manager.ingredients:
@@ -404,6 +408,11 @@ with tab3:
                             n_pkg = math.ceil(qty / p_size) if p_size > 0 else 1
                             other_item["packages_needed"] = n_pkg
                             other_item["total_price"] = best_alt["price"] * n_pkg
+                            
+                            # MUST update the physical widget state so Streamlit doesn't revert it!
+                            alt_sm_name = data_manager.get_supermarket(best_alt["supermarket"]).name
+                            new_str = f"{best_alt['name']} ({best_alt['unit_size']}) - €{best_alt['price']} [{alt_sm_name}]"
+                            st.session_state[f"alt_{other_idx}"] = new_str
             
             # Display items with dropdowns for alternatives
             items_by_sm = {}
