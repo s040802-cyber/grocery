@@ -13,12 +13,13 @@ class ShoppingProcessor:
         self.data_manager = data_manager
         self.price_engine = price_engine
 
-    def process_shopping_list(self, items: List[str], amounts: Optional[Dict[str, int]] = None, selected_supermarkets: Optional[List[str]] = None) -> Dict[str, Any]:
+    def process_shopping_list(self, items: List[str], amounts: Optional[Dict[str, int]] = None, selected_supermarkets: Optional[List[str]] = None, routing_strategy: str = "auto") -> Dict[str, Any]:
         """
         Main entry point.
         items: list of ingredient IDs (e.g. ["milk", "apple"])
         amounts: dict mapping ingredient IDs to quantities (e.g. {"milk": 2})
         selected_supermarkets: list of supermarket IDs (e.g. ["albert_heijn"]). If None, defaults to single best routing.
+        routing_strategy: "auto", "single_best", or "mixed_basket"
         """
         self.amounts = amounts or {}
         ingredients = []
@@ -32,10 +33,15 @@ class ShoppingProcessor:
         # Concurrent fetching
         raw_results = self._fetch_concurrently(ingredients, available_supermarkets)
         
-        if selected_supermarkets:
+        if routing_strategy == "single_best":
+            return self._calculate_single_best(ingredients, raw_results, available_supermarkets)
+        elif routing_strategy == "mixed_basket":
             return self._calculate_mixed_basket(ingredients, raw_results, available_supermarkets)
         else:
-            return self._calculate_single_best(ingredients, raw_results, available_supermarkets)
+            if selected_supermarkets:
+                return self._calculate_mixed_basket(ingredients, raw_results, available_supermarkets)
+            else:
+                return self._calculate_single_best(ingredients, raw_results, available_supermarkets)
 
     def _fetch_concurrently(self, ingredients: List[Ingredient], supermarkets: List[str]) -> Dict[str, Dict[str, List[ProductResult]]]:
         """

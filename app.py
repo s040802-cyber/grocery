@@ -299,6 +299,14 @@ with tab3:
         )
         
         st.subheader("2. Compare Supermarkets")
+        
+        routing_strategy = st.radio(
+            "Routing Strategy", 
+            options=["single_best", "mixed_basket"],
+            format_func=lambda x: "Single Best Supermarket (Cheapest Total Route)" if x == "single_best" else "Mixed Basket (Cheapest Overall by hopping stores)",
+            horizontal=True
+        )
+        
         available_sms = {sm_id: conf.name for sm_id, conf in data_manager.supermarkets.items()}
         manual_sms_names = st.multiselect(
             "Select supermarkets to compare", 
@@ -355,7 +363,7 @@ with tab3:
                     amounts[clean_id] = amount
                 
                 with st.spinner("Calculating prices across supermarkets..."):
-                    results = shopping_processor.process_shopping_list(items, amounts, manual_sms_ids)
+                    results = shopping_processor.process_shopping_list(items, amounts, manual_sms_ids, routing_strategy=routing_strategy)
                     st.session_state["calc_results"] = results
                     st.rerun()
 
