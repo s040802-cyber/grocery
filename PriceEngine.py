@@ -330,9 +330,11 @@ class PriceEngine:
                     elif labels:
                         # Sometimes currentPrice is null but it's a 2 for 1.19 deal or 1+1 gratis
                         label = labels[0]
+                        code = label.get('code', '')
                         count = label.get('count')
                         price = label.get('price')
                         free_count = label.get('freeCount')
+                        percentage = label.get('percentage')
                         
                         if count and price is not None:
                             final_price = float(price) / float(count)
@@ -340,6 +342,11 @@ class PriceEngine:
                             # 1+1 gratis -> count=1, freeCount=1
                             total_items = float(count) + float(free_count)
                             final_price = float(base_price) * float(count) / total_items
+                        elif code == 'DISCOUNT_ONE_HALF_PRICE':
+                            # 2e halve prijs = buy 2, 2nd is 50% off -> average 25% discount per unit
+                            final_price = float(base_price) * 0.75
+                        elif percentage is not None:
+                            final_price = float(base_price) * (1.0 - float(percentage) / 100.0)
                             
                 unit_size = p.get('salesUnitSize', '')
                 
