@@ -323,12 +323,18 @@ class PriceEngine:
                     if current_price is not None:
                         final_price = float(current_price)
                     elif labels:
-                        # Sometimes currentPrice is null but it's a 2 for 1.19 deal
+                        # Sometimes currentPrice is null but it's a 2 for 1.19 deal or 1+1 gratis
                         label = labels[0]
                         count = label.get('count')
                         price = label.get('price')
-                        if count and price:
+                        free_count = label.get('freeCount')
+                        
+                        if count and price is not None:
                             final_price = float(price) / float(count)
+                        elif count and free_count:
+                            # 1+1 gratis -> count=1, freeCount=1
+                            total_items = float(count) + float(free_count)
+                            final_price = float(base_price) * float(count) / total_items
                             
                 unit_size = p.get('salesUnitSize', '')
                 
