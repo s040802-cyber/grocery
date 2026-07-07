@@ -236,7 +236,13 @@ class PriceEngine:
                         new_price = float(p.get("p", 0.0))
                         old_price = old_prices.get(key, 0.0)
                         if old_price > 0 and new_price < old_price * 0.95:
-                            sm_drops.append(f"{p.get('n')} [{config.name}] (Discounted!)")
+                            url_str = ""
+                            if config.name.lower() == "ah" or "albert" in config.name.lower():
+                                link = p.get("l", "")
+                                if link:
+                                    link_clean = link.lstrip("/")
+                                    url_str = f" (Link: https://www.ah.nl/producten/product/{link_clean})"
+                            sm_drops.append(f"{p.get('n')} [{config.name}] (Discounted!) - €{new_price:.2f}{url_str}")
                     break
                     
             # Staples for this store
@@ -244,7 +250,13 @@ class PriceEngine:
             for p in products:
                 price = float(p.get("p", 0.0))
                 if price > 0.15:
-                    sm_staples.append((f"{p.get('n')} [{config.name}]", price))
+                    url_str = ""
+                    if config.name.lower() == "ah" or "albert" in config.name.lower():
+                        link = p.get("l", "")
+                        if link:
+                            link_clean = link.lstrip("/")
+                            url_str = f" (Link: https://www.ah.nl/producten/product/{link_clean})"
+                    sm_staples.append((f"{p.get('n')} [{config.name}] - €{price:.2f}{url_str}", price))
                     
             sm_staples.sort(key=lambda x: x[1])
             top_sm_staples = [item[0] for item in sm_staples[:100]]

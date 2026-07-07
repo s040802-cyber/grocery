@@ -63,8 +63,14 @@ Here is a mix of Exciting Discounts and Budget Staples at their selected superma
 
 CRITICAL RULE: You may select ingredients from AT MOST {max_supermarkets} distinct supermarkets. Count the unique supermarket tags like [AH] or [Jumbo] in your selection and ensure they do not exceed {max_supermarkets}.
 
+PRICING & DISCOUNT RULES:
+1. For any ingredient that you select from the provided "Exciting Discounts and Budget Staples" list, you MUST use the exact price and discount label (e.g. '(Discounted!)') as it is listed there.
+2. For any other ingredient you add to complete the recipe that is NOT in the provided list, you MUST NOT invent or guess its price, and you MUST NOT label it as '(Discounted!)'. Simply list the ingredient and the supermarket name without a price (e.g., '- Garlic [AH]').
+3. NEVER hallucinate or make up prices or discount tags for items that are not in the provided list of discounts/staples.
+4. LINKING RULE: If an item in the provided list has a link (e.g., `(Link: https://...)`), you MUST copy that exact URL and include it next to the item in your final shopping list using markdown formatting: `[Item Name](https://...)`.
+
 Invent a creative recipe prioritizing the Exciting Discounts and supplementing them with the Budget Staples to keep costs low. 
-Provide a shopping list and step-by-step instructions. In your final shopping list, you MUST explicitly state the supermarket where each ingredient should be bought (e.g., '- Firm Tofu (400g) - €1.49 [Jumbo]').
+Provide a shopping list and step-by-step instructions. In your final shopping list, follow the PRICING & DISCOUNT RULES and the LINKING RULE above when writing the items and their prices/supermarkets.
 """
         try:
             stream = self.client.chat.completions.create(
@@ -169,8 +175,14 @@ Here is a mix of Exciting Discounts and Budget Staples at their selected superma
 
 CRITICAL RULE: You may select ingredients from AT MOST {max_supermarkets} distinct supermarkets. Count the unique supermarket tags like [AH] or [Jumbo] in your selection and ensure they do not exceed {max_supermarkets}.
 
+PRICING & DISCOUNT RULES:
+1. For any ingredient that you select from the provided "Exciting Discounts and Budget Staples" list, you MUST use the exact price and discount label (e.g. '(Discounted!)') as it is listed there.
+2. For any other ingredient you add to complete the recipe that is NOT in the provided list, you MUST NOT invent or guess its price, and you MUST NOT label it as '(Discounted!)'. Simply list the ingredient and the supermarket name without a price (e.g., '- Garlic [AH]').
+3. NEVER hallucinate or make up prices or discount tags for items that are not in the provided list of discounts/staples.
+4. LINKING RULE: If an item in the provided list has a link (e.g., `(Link: https://...)`), you MUST copy that exact URL and include it next to the item in your final shopping list using markdown formatting: `[Item Name](https://...)`.
+
 Invent a creative recipe prioritizing the Exciting Discounts and supplementing them with the Budget Staples to keep costs low. 
-Provide a shopping list and step-by-step instructions. In your final shopping list, you MUST explicitly state the supermarket where each ingredient should be bought (e.g., '- Firm Tofu (400g) - €1.49 [Jumbo]').
+Provide a shopping list and step-by-step instructions. In your final shopping list, follow the PRICING & DISCOUNT RULES and the LINKING RULE above when writing the items and their prices/supermarkets.
 """
         try:
             model = self.genai.GenerativeModel(model_to_use)
