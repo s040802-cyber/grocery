@@ -44,14 +44,24 @@ if not check_password():
 
 
 # -- Caching Backend --
+import os
+
+def get_supermarkets_mtime():
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
+    processed_path = os.path.join(data_dir, "supermarkets_processed.json")
+    old_path = os.path.join(data_dir, "supermarkets_7days_ago.json")
+    t1 = os.path.getmtime(processed_path) if os.path.exists(processed_path) else 0
+    t2 = os.path.getmtime(old_path) if os.path.exists(old_path) else 0
+    return t1, t2
+
 @st.cache_resource(show_spinner="Initializing Supermarket Data...")
-def get_backend():
+def get_backend(mtimes):
     data_manager = DataManager()
     price_engine = PriceEngine(data_manager)
     shopping_processor = ShoppingProcessor(data_manager, price_engine)
     return data_manager, price_engine, shopping_processor
 
-data_manager, price_engine, shopping_processor = get_backend()
+data_manager, price_engine, shopping_processor = get_backend(get_supermarkets_mtime())
 
 # -- UI Tabs --
 st.title("👨‍🍳 AI Chef")
@@ -92,7 +102,47 @@ with tab1:
             st.error("Please select at least one supermarket.")
         else:
             with st.spinner("Fetching best discounts and budget staples..."):
-                bonus_items = price_engine.get_hybrid_budget_items(selected_sms_ids, limit=20)
+                raw_bonus_items = price_engine.get_hybrid_budget_items(selected_sms_ids, limit=20)
+                
+                # Fetch offline prices for all database ingredients to feed to AI
+                compiled_prices = []
+                for ing_id, ing in data_manager.ingredients.items():
+                    for sm_id in selected_sms_ids:
+                        config = data_manager.get_supermarket(sm_id)
+                        if not config: continue
+                        
+                        try:
+                            products = price_engine._search_offline(config.name, ing.translations.nl, ing)
+                            if products:
+                                products.sort(key=lambda x: x.unit_price)
+                                p = products[0]
+                                is_bonus = f"{config.name}_{p.name}" in price_engine.bonus_items_keys
+                                bonus_tag = " [STATUS: DISCOUNTED]" if is_bonus else " [STATUS: REGULAR PRICE]"
+                                
+                                url_str = ""
+                                if sm_id == "albert_heijn":
+                                    for sm_data in price_engine.dataset:
+                                        if sm_data.get("c") == "AH":
+                                            for dp in sm_data.get("d", []):
+                                                if dp.get("n") == p.name:
+                                                    link = dp.get("l", "")
+                                                    if link:
+                                                        link_clean = link.lstrip("/")
+                                                        url_str = f" (Link: https://www.ah.nl/producten/product/{link_clean})"
+                                                    break
+                                                    
+                                compiled_prices.append(f"{p.name} [{config.name}] - €{p.price:.2f}{bonus_tag}{url_str}")
+                        except Exception as e:
+                            pass
+                            
+                # Merge and deduplicate by item name to ensure we have the best info
+                merged = {}
+                for item in raw_bonus_items + compiled_prices:
+                    name_key = item.split(" [")[0].strip().lower()
+                    if name_key not in merged or "STATUS: DISCOUNTED" in item:
+                        merged[name_key] = item
+                
+                bonus_items = list(merged.values())
                 
             st.success(f"Found {len(bonus_items)} budget items!")
             

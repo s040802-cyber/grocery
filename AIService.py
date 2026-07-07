@@ -64,22 +64,24 @@ Here is a mix of Exciting Discounts and Budget Staples at their selected superma
 CRITICAL RULE: You may select ingredients from AT MOST {max_supermarkets} distinct supermarkets. Count the unique supermarket tags like [AH] or [Jumbo] in your selection and ensure they do not exceed {max_supermarkets}.
 
 PRICING & DISCOUNT RULES:
-1. For any ingredient that you select from the provided "Exciting Discounts and Budget Staples" list, you MUST use the exact price and discount label (e.g. '(Discounted!)') as it is listed there. If it does not have '(Discounted!)' in the provided list, you MUST NOT write '(Discounted!)' for it.
-2. For any other ingredient you add to complete the recipe that is NOT in the provided list (including items from the user's requested partial list if they are not in the discounts list), you MUST NOT write any price for it and you MUST NOT write '(Discounted!)' for it.
-3. NEVER make up, guess, or hallucinate prices or discount tags for items that are not in the provided list of discounts/staples.
-4. LINKING RULE: If an item in the provided list has a link (e.g., `(Link: https://...)`), you MUST copy that exact URL and include it next to the item in your final shopping list using markdown formatting: `[Item Name](https://...)`.
+1. For any ingredient you include in the recipe (including user-requested partial items, and extra items like Pasta, Garlic, Olive oil, etc.), you MUST look it up in the provided list of "Exciting Discounts and Budget Staples".
+2. If the item is present in the list, you MUST use its exact price and copy its link:
+   - If its status is '[STATUS: DISCOUNTED]', you MUST format it with the price and the '(Discounted!)' tag, e.g.: `- [Item Name](Link) [Supermarket] (Discounted!) - €[Price]`
+   - If its status is '[STATUS: REGULAR PRICE]', you MUST format it with the price but WITHOUT '(Discounted!)', e.g.: `- [Item Name](Link) [Supermarket] - €[Price]`
+3. If an ingredient is NOT in the provided list, you MUST NOT write a price for it and you MUST NOT write '(Discounted!)' for it. Simply list it as a plain item, e.g. `- Salt [AH]`.
+4. NEVER make up, guess, or hallucinate prices or discount tags for items that are not in the provided list.
 
 EXAMPLES OF CORRECT VS INCORRECT SHOPPING LIST FORMATTING:
 - Correct: - [AH Halfvolle melk](https://www.ah.nl/producten/product/wi123) [AH] (Discounted!) - €1.05
-- Correct: - AH Terra Kidneybonen [AH] - €0.49
+- Correct: - [AH Terra Kidneybonen](https://www.ah.nl/producten/product/wi456) [AH] - €0.49
 - Correct: - Spaghetti [AH]
 - Correct: - Garlic [AH]
-- Incorrect: - Spaghetti [AH] - €1.20 (Violated rule #2: Spaghetti was not in the provided list, so it must not have a price)
-- Incorrect: - Garlic [AH] (Discounted!) - €0.99 (Violated rule #2: Garlic was not in the provided list, so it must not have a price or discount label)
-- Incorrect: - AH Terra Kidneybonen [AH] (Discounted!) - €0.49 (Violated rule #1: Kidneybonen was in the list but did not have '(Discounted!)' in the list, so you must not add it)
+- Incorrect: - Spaghetti [AH] - €1.20 (Violated rule #3: Spaghetti was not in the provided list, so it must not have a price)
+- Incorrect: - Garlic [AH] (Discounted!) - €0.99 (Violated rule #3: Garlic was not in the provided list, so it must not have a price or discount label)
+- Incorrect: - [AH Terra Kidneybonen](https://www.ah.nl/producten/product/wi456) [AH] (Discounted!) - €0.49 (Violated rule #2: Kidneybonen was in the list but did not have '[STATUS: DISCOUNTED]', so you must not add it)
 
 Invent a creative recipe prioritizing the Exciting Discounts and supplementing them with the Budget Staples to keep costs low. 
-Provide a shopping list and step-by-step instructions. In your final shopping list, follow the PRICING & DISCOUNT RULES and the LINKING RULE above when writing the items and their prices/supermarkets.
+Provide a shopping list and step-by-step instructions. In your final shopping list, follow the PRICING & DISCOUNT RULES above when writing the items and their prices/supermarkets.
 """
         try:
             stream = self.client.chat.completions.create(
@@ -185,22 +187,24 @@ Here is a mix of Exciting Discounts and Budget Staples at their selected superma
 CRITICAL RULE: You may select ingredients from AT MOST {max_supermarkets} distinct supermarkets. Count the unique supermarket tags like [AH] or [Jumbo] in your selection and ensure they do not exceed {max_supermarkets}.
 
 PRICING & DISCOUNT RULES:
-1. For any ingredient that you select from the provided "Exciting Discounts and Budget Staples" list, you MUST use the exact price and discount label (e.g. '(Discounted!)') as it is listed there. If it does not have '(Discounted!)' in the provided list, you MUST NOT write '(Discounted!)' for it.
-2. For any other ingredient you add to complete the recipe that is NOT in the provided list (including items from the user's requested partial list if they are not in the discounts list), you MUST NOT write any price for it and you MUST NOT write '(Discounted!)' for it.
-3. NEVER make up, guess, or hallucinate prices or discount tags for items that are not in the provided list of discounts/staples.
-4. LINKING RULE: If an item in the provided list has a link (e.g., `(Link: https://...)`), you MUST copy that exact URL and include it next to the item in your final shopping list using markdown formatting: `[Item Name](https://...)`.
+1. For any ingredient you include in the recipe (including user-requested partial items, and extra items like Pasta, Garlic, Olive oil, etc.), you MUST look it up in the provided list of "Exciting Discounts and Budget Staples".
+2. If the item is present in the list, you MUST use its exact price and copy its link:
+   - If its status is '[STATUS: DISCOUNTED]', you MUST format it with the price and the '(Discounted!)' tag, e.g.: `- [Item Name](Link) [Supermarket] (Discounted!) - €[Price]`
+   - If its status is '[STATUS: REGULAR PRICE]', you MUST format it with the price but WITHOUT '(Discounted!)', e.g.: `- [Item Name](Link) [Supermarket] - €[Price]`
+3. If an ingredient is NOT in the provided list, you MUST NOT write a price for it and you MUST NOT write '(Discounted!)' for it. Simply list it as a plain item, e.g. `- Salt [AH]`.
+4. NEVER make up, guess, or hallucinate prices or discount tags for items that are not in the provided list.
 
 EXAMPLES OF CORRECT VS INCORRECT SHOPPING LIST FORMATTING:
 - Correct: - [AH Halfvolle melk](https://www.ah.nl/producten/product/wi123) [AH] (Discounted!) - €1.05
-- Correct: - AH Terra Kidneybonen [AH] - €0.49
+- Correct: - [AH Terra Kidneybonen](https://www.ah.nl/producten/product/wi456) [AH] - €0.49
 - Correct: - Spaghetti [AH]
 - Correct: - Garlic [AH]
-- Incorrect: - Spaghetti [AH] - €1.20 (Violated rule #2: Spaghetti was not in the provided list, so it must not have a price)
-- Incorrect: - Garlic [AH] (Discounted!) - €0.99 (Violated rule #2: Garlic was not in the provided list, so it must not have a price or discount label)
-- Incorrect: - AH Terra Kidneybonen [AH] (Discounted!) - €0.49 (Violated rule #1: Kidneybonen was in the list but did not have '(Discounted!)' in the list, so you must not add it)
+- Incorrect: - Spaghetti [AH] - €1.20 (Violated rule #3: Spaghetti was not in the provided list, so it must not have a price)
+- Incorrect: - Garlic [AH] (Discounted!) - €0.99 (Violated rule #3: Garlic was not in the provided list, so it must not have a price or discount label)
+- Incorrect: - [AH Terra Kidneybonen](https://www.ah.nl/producten/product/wi456) [AH] (Discounted!) - €0.49 (Violated rule #2: Kidneybonen was in the list but did not have '[STATUS: DISCOUNTED]', so you must not add it)
 
 Invent a creative recipe prioritizing the Exciting Discounts and supplementing them with the Budget Staples to keep costs low. 
-Provide a shopping list and step-by-step instructions. In your final shopping list, follow the PRICING & DISCOUNT RULES and the LINKING RULE above when writing the items and their prices/supermarkets.
+Provide a shopping list and step-by-step instructions. In your final shopping list, follow the PRICING & DISCOUNT RULES above when writing the items and their prices/supermarkets.
 """
         try:
             model = self.genai.GenerativeModel(model_to_use)

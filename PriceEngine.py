@@ -242,7 +242,7 @@ class PriceEngine:
                                 if link:
                                     link_clean = link.lstrip("/")
                                     url_str = f" (Link: https://www.ah.nl/producten/product/{link_clean})"
-                            sm_drops.append(f"{p.get('n')} [{config.name}] (Discounted!) - €{new_price:.2f}{url_str}")
+                            sm_drops.append(f"{p.get('n')} [{config.name}] - €{new_price:.2f} [STATUS: DISCOUNTED]{url_str}")
                     break
                     
             # Staples for this store
@@ -256,7 +256,7 @@ class PriceEngine:
                         if link:
                             link_clean = link.lstrip("/")
                             url_str = f" (Link: https://www.ah.nl/producten/product/{link_clean})"
-                    sm_staples.append((f"{p.get('n')} [{config.name}] - €{price:.2f}{url_str}", price))
+                    sm_staples.append((f"{p.get('n')} [{config.name}] - €{price:.2f} [STATUS: REGULAR PRICE]{url_str}", price))
                     
             sm_staples.sort(key=lambda x: x[1])
             top_sm_staples = [item[0] for item in sm_staples[:100]]
