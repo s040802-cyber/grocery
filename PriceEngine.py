@@ -74,6 +74,11 @@ class PriceEngine:
         
         # Initialize live connectors
         try:
+            import sys
+            connector_path = os.path.join(os.path.dirname(__file__), "scratch", "SupermarktConnector")
+            if connector_path not in sys.path:
+                sys.path.append(connector_path)
+                
             from supermarktconnector.ah import AHConnector
             self.ah_connector = AHConnector()
             self.jumbo_connector = None # Jumbo live API is blocked by Cloudflare (403), using offline fallback
