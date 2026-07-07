@@ -64,10 +64,19 @@ Here is a mix of Exciting Discounts and Budget Staples at their selected superma
 CRITICAL RULE: You may select ingredients from AT MOST {max_supermarkets} distinct supermarkets. Count the unique supermarket tags like [AH] or [Jumbo] in your selection and ensure they do not exceed {max_supermarkets}.
 
 PRICING & DISCOUNT RULES:
-1. For any ingredient that you select from the provided "Exciting Discounts and Budget Staples" list, you MUST use the exact price and discount label (e.g. '(Discounted!)') as it is listed there.
-2. For any other ingredient you add to complete the recipe that is NOT in the provided list, you MUST NOT invent or guess its price, and you MUST NOT label it as '(Discounted!)'. Simply list the ingredient and the supermarket name without a price (e.g., '- Garlic [AH]').
-3. NEVER hallucinate or make up prices or discount tags for items that are not in the provided list of discounts/staples.
+1. For any ingredient that you select from the provided "Exciting Discounts and Budget Staples" list, you MUST use the exact price and discount label (e.g. '(Discounted!)') as it is listed there. If it does not have '(Discounted!)' in the provided list, you MUST NOT write '(Discounted!)' for it.
+2. For any other ingredient you add to complete the recipe that is NOT in the provided list (including items from the user's requested partial list if they are not in the discounts list), you MUST NOT write any price for it and you MUST NOT write '(Discounted!)' for it.
+3. NEVER make up, guess, or hallucinate prices or discount tags for items that are not in the provided list of discounts/staples.
 4. LINKING RULE: If an item in the provided list has a link (e.g., `(Link: https://...)`), you MUST copy that exact URL and include it next to the item in your final shopping list using markdown formatting: `[Item Name](https://...)`.
+
+EXAMPLES OF CORRECT VS INCORRECT SHOPPING LIST FORMATTING:
+- Correct: - [AH Halfvolle melk](https://www.ah.nl/producten/product/wi123) [AH] (Discounted!) - €1.05
+- Correct: - AH Terra Kidneybonen [AH] - €0.49
+- Correct: - Spaghetti [AH]
+- Correct: - Garlic [AH]
+- Incorrect: - Spaghetti [AH] - €1.20 (Violated rule #2: Spaghetti was not in the provided list, so it must not have a price)
+- Incorrect: - Garlic [AH] (Discounted!) - €0.99 (Violated rule #2: Garlic was not in the provided list, so it must not have a price or discount label)
+- Incorrect: - AH Terra Kidneybonen [AH] (Discounted!) - €0.49 (Violated rule #1: Kidneybonen was in the list but did not have '(Discounted!)' in the list, so you must not add it)
 
 Invent a creative recipe prioritizing the Exciting Discounts and supplementing them with the Budget Staples to keep costs low. 
 Provide a shopping list and step-by-step instructions. In your final shopping list, follow the PRICING & DISCOUNT RULES and the LINKING RULE above when writing the items and their prices/supermarkets.
@@ -176,10 +185,19 @@ Here is a mix of Exciting Discounts and Budget Staples at their selected superma
 CRITICAL RULE: You may select ingredients from AT MOST {max_supermarkets} distinct supermarkets. Count the unique supermarket tags like [AH] or [Jumbo] in your selection and ensure they do not exceed {max_supermarkets}.
 
 PRICING & DISCOUNT RULES:
-1. For any ingredient that you select from the provided "Exciting Discounts and Budget Staples" list, you MUST use the exact price and discount label (e.g. '(Discounted!)') as it is listed there.
-2. For any other ingredient you add to complete the recipe that is NOT in the provided list, you MUST NOT invent or guess its price, and you MUST NOT label it as '(Discounted!)'. Simply list the ingredient and the supermarket name without a price (e.g., '- Garlic [AH]').
-3. NEVER hallucinate or make up prices or discount tags for items that are not in the provided list of discounts/staples.
+1. For any ingredient that you select from the provided "Exciting Discounts and Budget Staples" list, you MUST use the exact price and discount label (e.g. '(Discounted!)') as it is listed there. If it does not have '(Discounted!)' in the provided list, you MUST NOT write '(Discounted!)' for it.
+2. For any other ingredient you add to complete the recipe that is NOT in the provided list (including items from the user's requested partial list if they are not in the discounts list), you MUST NOT write any price for it and you MUST NOT write '(Discounted!)' for it.
+3. NEVER make up, guess, or hallucinate prices or discount tags for items that are not in the provided list of discounts/staples.
 4. LINKING RULE: If an item in the provided list has a link (e.g., `(Link: https://...)`), you MUST copy that exact URL and include it next to the item in your final shopping list using markdown formatting: `[Item Name](https://...)`.
+
+EXAMPLES OF CORRECT VS INCORRECT SHOPPING LIST FORMATTING:
+- Correct: - [AH Halfvolle melk](https://www.ah.nl/producten/product/wi123) [AH] (Discounted!) - €1.05
+- Correct: - AH Terra Kidneybonen [AH] - €0.49
+- Correct: - Spaghetti [AH]
+- Correct: - Garlic [AH]
+- Incorrect: - Spaghetti [AH] - €1.20 (Violated rule #2: Spaghetti was not in the provided list, so it must not have a price)
+- Incorrect: - Garlic [AH] (Discounted!) - €0.99 (Violated rule #2: Garlic was not in the provided list, so it must not have a price or discount label)
+- Incorrect: - AH Terra Kidneybonen [AH] (Discounted!) - €0.49 (Violated rule #1: Kidneybonen was in the list but did not have '(Discounted!)' in the list, so you must not add it)
 
 Invent a creative recipe prioritizing the Exciting Discounts and supplementing them with the Budget Staples to keep costs low. 
 Provide a shopping list and step-by-step instructions. In your final shopping list, follow the PRICING & DISCOUNT RULES and the LINKING RULE above when writing the items and their prices/supermarkets.
